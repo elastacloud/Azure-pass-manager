@@ -1,5 +1,6 @@
 ﻿namespace APM.BotCore.Dialogs
 {
+    using APM.BotCore.AdaptiveCards;
     using Microsoft.Bot.Builder;
     using Microsoft.Bot.Builder.Dialogs;
     using Microsoft.Bot.Connector;
@@ -21,22 +22,10 @@
 
         public override async Task<DialogTurnResult> BeginDialogAsync(DialogContext outerDc, object options = null, CancellationToken cancellationToken = default)
         {
-            var cardAttachment = GetAttachment();
+            var cardAttachment = new APMAdaptiveCard().Get();
             await outerDc.Context.SendActivityAsync(MessageFactory.Attachment(cardAttachment), cancellationToken);
 
             return await base.BeginDialogAsync(outerDc, options, cancellationToken);
-        }
-
-        private Attachment GetAttachment()
-        {
-            var filePath = "./Resources/Adaptive.APM.json";
-            var adaptiveCardJson = File.ReadAllText(filePath);
-            var adaptiveCardAttachment = new Attachment()
-            {
-                ContentType = "application/vnd.microsoft.card.adaptive",
-                Content = JsonConvert.DeserializeObject(adaptiveCardJson),
-            };
-            return adaptiveCardAttachment;
         }
     }
 }

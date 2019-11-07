@@ -3,9 +3,11 @@
 //
 // Generated with Bot Builder V4 SDK Template for Visual Studio EchoBot v4.5.0
 
+using APM.BotCore.AdaptiveCards;
 using Microsoft.Bot.Builder;
 using Microsoft.Bot.Builder.Dialogs;
 using Microsoft.Bot.Schema;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -26,6 +28,22 @@ namespace APM.BotCore.Bots
         {
             // Run the Dialog with the new message Activity.
             await _dialog.Run(turnContext, _conversationState.CreateProperty<DialogState>("DialogState"), cancellationToken);
+        }
+
+        protected override async Task OnMembersAddedAsync(IList<ChannelAccount> membersAdded, ITurnContext<IConversationUpdateActivity> turnContext, CancellationToken cancellationToken)
+        {
+            foreach (var newMember in membersAdded)
+            {
+                if (newMember.Id != turnContext.Activity.Recipient.Id)
+                {
+                    //await turnContext.SendActivityAsync("Welcome to the Azure Pass Manager. Do you want to get started? Type any phrase to begin.");
+
+                    var cardAttachment = new APMAdaptiveCard().Get();
+                    await turnContext.SendActivityAsync(MessageFactory.Attachment(cardAttachment), cancellationToken);
+                }
+            }
+
+            await base.OnMembersAddedAsync(membersAdded, turnContext, cancellationToken);
         }
 
         /// <summary>

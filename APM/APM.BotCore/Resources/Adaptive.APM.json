@@ -18,9 +18,9 @@
           "items": [
             {
               "type": "Image",
-              "url": "http://placekitten.com/96/96",
+              "url": "data:image/png;base64,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",
               "size": "Small",
-              "style": "Person"
+              "style": "default"
             }
           ]
         },
@@ -48,25 +48,10 @@
   ],
   "actions": [
     {
-      "type": "Action.ShowCard",
+      "type": "Action.Submit",
       "title": "Get Azure trial code",
-      "card": {
-        "type": "AdaptiveCard",
-        "body": [
-          {
-            "type": "Input.Text",
-            "id": "comment",
-            "isMultiline": true,
-            "placeholder": "Enter your comment"
-          }
-        ],
-        "actions": [
-          {
-            "type": "Action.Submit",
-            "title": "OK"
-          }
-        ],
-        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json"
+      "data": {
+        "x" :  13
       }
     }
   ]
