@@ -1,5 +1,6 @@
 ﻿namespace APM.BotCore
 {
+    using APM.Domain;
     using Newtonsoft.Json;
     using System;
     using System.Diagnostics;
@@ -7,7 +8,7 @@
     using System.Net.Http.Headers;
     using System.Threading.Tasks;
 
-    public class APMHelper
+    public class APMHelper : IAPMHelper
     {
         private readonly Uri apmEndPoint;
 
@@ -15,12 +16,12 @@
         {
             this.apmEndPoint = apmEndPoint;
         }
-        public async Task<T> GetAzurePassCode<T>(string userResponse)
+        public async Task<Code> GetAzurePassCode(string userResponse)
         {
             using (HttpClient client = new HttpClient())
             {
                 client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-                
+
                 var claimUri = new Uri(apmEndPoint, $"claim?eventName={userResponse}");
                 var httpRequest = new HttpRequestMessage(HttpMethod.Get, claimUri);
 
@@ -29,7 +30,7 @@
                 {
                     response.EnsureSuccessStatusCode();
                     string resp = await response.Content.ReadAsStringAsync();
-                    return JsonConvert.DeserializeObject<T>(resp);
+                    return JsonConvert.DeserializeObject<Code>(resp);
                 }
             }
         }

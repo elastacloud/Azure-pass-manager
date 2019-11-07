@@ -33,7 +33,12 @@ namespace APM.BotCore
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
 
             // Setup the DI for APM Helpers
-            services.AddSingleton<APMHelper>(new APMHelper(new System.Uri(Configuration["APMAPI"])));
+#if DEBUG
+            services.AddSingleton<IAPMHelper>(new FakeAPMHelper());
+#else
+            services.AddSingleton<IAPMHelper>(new APMHelper(new System.Uri(Configuration["APMAPI"])));
+
+#endif
 
             // Create the credential provider to be used with the Bot Framework Adapter.
             services.AddSingleton<ICredentialProvider, ConfigurationCredentialProvider>();

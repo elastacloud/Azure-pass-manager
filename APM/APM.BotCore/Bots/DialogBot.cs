@@ -37,7 +37,6 @@ namespace APM.BotCore.Bots
                 if (newMember.Id != turnContext.Activity.Recipient.Id)
                 {
                     //await turnContext.SendActivityAsync("Welcome to the Azure Pass Manager. Do you want to get started? Type any phrase to begin.");
-
                     var cardAttachment = new APMAdaptiveCard().Get();
                     await turnContext.SendActivityAsync(MessageFactory.Attachment(cardAttachment), cancellationToken);
                 }

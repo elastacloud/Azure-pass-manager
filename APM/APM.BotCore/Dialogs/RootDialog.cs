@@ -1,8 +1,10 @@
 ﻿namespace APM.BotCore.Dialogs
 {
+    using APM.Domain;
     using Microsoft.Bot.Builder;
     using Microsoft.Bot.Builder.Dialogs;
     using Microsoft.Bot.Builder.Dialogs.Choices;
+    using Newtonsoft.Json.Linq;
     using System;
     using System.Collections.Generic;
     using System.Threading;
@@ -10,17 +12,16 @@
 
     public class RootDialog : ComponentDialog
     {
-        private const string HelpChoice = "HelpOption";
-        private const string APMChoice = "APMChoice";
-        private const string ResetChoice = "ResetChoice";
+        private const string APMChoice = "Get Azure Pass";
+        private const string ResetChoice = "Start Again";
+        private IStatePropertyAccessor<Code> stateAccessor;
         private static List<Choice> APMOptions = new List<Choice>()
         {
-            new Choice(HelpChoice) { Synonyms = new List<string> { "help" } },
-            new Choice(APMChoice) { Synonyms = new List<string> { "azure", "code", "pass", "trial", "Azure trial code"}},
+            new Choice(APMChoice) { Synonyms = new List<string> { "help", "azure", "code", "pass", "trial", "Azure trial code"}},
             new Choice(ResetChoice) { Synonyms = new List<string> { "reset", "reset code" }}
         };
 
-        public RootDialog(APMHelper aPMHelper) : base(nameof(RootDialog))
+        public RootDialog(IAPMHelper aPMHelper, ConversationState state) : base(nameof(RootDialog))
         {
             InitialDialogId = nameof(WaterfallDialog);
             AddDialog(new WaterfallDialog(InitialDialogId, new WaterfallStep[]
@@ -29,23 +30,31 @@
                 ShowChildDialogAsync,
                 ResumeAfterAsync
             }));
-            AddDialog(new HelpDialog());
             AddDialog(new APMDialog(aPMHelper));
             AddDialog(new ResetDialog());
             AddDialog(new ChoicePrompt(nameof(ChoicePrompt)));
+            this.stateAccessor = state.CreateProperty<Code>("awardedCode");
         }
-
+        
         public async Task<DialogTurnResult> PromptForUserChoice(WaterfallStepContext waterfallStepContext, CancellationToken cancellationToken = default(CancellationToken))
         {
-            return await waterfallStepContext.PromptAsync(
-                nameof(ChoicePrompt),
-                new PromptOptions()
-                {
-                    Choices = APMOptions,
-                    Prompt = MessageFactory.Text("Make a choice to get started"),
-                    RetryPrompt = MessageFactory.Text("Choice not recognized. Make a choice to get started")
-                },
-                cancellationToken);
+            if (waterfallStepContext.Context.Activity.Value is JObject jObj && jObj.Value<int>("x") == 13)
+            {
+
+                return await waterfallStepContext.NextAsync(new FoundChoice() { Value = APMChoice }, cancellationToken: cancellationToken);
+            }
+            else
+            {
+                return await waterfallStepContext.PromptAsync(
+                    nameof(ChoicePrompt),
+                    new PromptOptions()
+                    {
+                        Choices = APMOptions,
+                        Prompt = MessageFactory.Text("Make a choice to get started"),
+                        RetryPrompt = MessageFactory.Text("Choice not recognized. Make a choice to get started")
+                    },
+                    cancellationToken);
+            }
         }
 
         public async Task<DialogTurnResult> ShowChildDialogAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken = default(CancellationToken))
@@ -54,17 +63,15 @@
 
             switch (optionSelected)
             {
-                case HelpChoice:
-                    return await stepContext.BeginDialogAsync(
-                        nameof(HelpDialog),
-                        cancellationToken);
                 case APMChoice:
                     return await stepContext.BeginDialogAsync(
                         nameof(APMDialog),
+                        await stateAccessor.GetAsync(stepContext.Context),
                         cancellationToken);
                 case ResetChoice:
                     return await stepContext.BeginDialogAsync(
                         nameof(ResetDialog),
+                        await stateAccessor.GetAsync(stepContext.Context),
                         cancellationToken);
             }
 
@@ -82,12 +89,9 @@
         {
             try
             {
-                var message = stepContext.Context.Activity;
-
-                var ticketNumber = new Random().Next(0, 20000);
-                await stepContext.Context.SendActivityAsync(
-                    $"Thank you for using the Helpdesk Bot. Your ticket number is {ticketNumber}.",
-                    cancellationToken: cancellationToken);
+                var result = stepContext.Result;
+                await stateAccessor.SetAsync(stepContext.Context, result as Code);
+                return await stepContext.EndDialogAsync(result, cancellationToken);
             }
             catch (Exception ex)
             {

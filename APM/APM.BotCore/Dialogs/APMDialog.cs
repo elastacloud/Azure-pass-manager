@@ -12,9 +12,9 @@
     public class APMDialog : ComponentDialog
     {
         private const string AzureCodeKeyName = "AzurePromoCode";
-        private readonly APMHelper aPMHelper;
+        private readonly IAPMHelper aPMHelper;
 
-        public APMDialog(APMHelper aPMHelper) : base(nameof(APMDialog))
+        public APMDialog(IAPMHelper aPMHelper) : base(nameof(APMDialog))
         {
             InitialDialogId = nameof(WaterfallDialog);
             AddDialog(new WaterfallDialog(InitialDialogId, new WaterfallStep[]
@@ -32,11 +32,12 @@
             var userResponseIn = stepContext.Result;
             if (userResponseIn is string userResponse && !string.IsNullOrWhiteSpace(userResponse))
             {
-                var code = await aPMHelper.GetAzurePassCode<Code>(userResponse);
+                var code = await aPMHelper.GetAzurePassCode(userResponse);
                 if (code != null)
                 {
                     string response = $"Your Azure trial code is: {code.PromoCode} which expires on {code.Expiry.ToLongDateString()}.  You can activate your code at https://www.microsoftazurepass.com";
-                    //todo: context.UserData.SetValue(AzureCodeKeyName, code.PromoCode);
+
+                    stepContext.Values[AzureCodeKeyName] = code;
                     await stepContext.Context.SendActivityAsync(response, response);
 
                     response = "Good luck with your project, you can now close this conversation.";
@@ -48,7 +49,7 @@
                 }
             }
 
-            return await stepContext.NextAsync(cancellationToken);
+            return await stepContext.EndDialogAsync(stepContext.Values[AzureCodeKeyName], cancellationToken);
         }
 
         private async Task<DialogTurnResult> PromptForEventName(WaterfallStepContext stepContext, CancellationToken cancellationToken)
@@ -64,12 +65,11 @@
 
         private async Task<DialogTurnResult> DetectPreviousState(WaterfallStepContext stepContext, CancellationToken cancellationToken)
         {
-            if (stepContext.Values.ContainsKey("azureCode"))
+            if (stepContext.Options is Code existingCode)
             {
-                string existingCode = stepContext.Values["azureCode"].ToString();
-                string response = $"You already have an Azure trial code.  Which is: {existingCode}";
+                string response = $"You already have an Azure trial code.  Which is: {existingCode.PromoCode}";
                 await stepContext.Context.SendActivityAsync(response, cancellationToken: cancellationToken);
-                await stepContext.EndDialogAsync();
+                return await stepContext.EndDialogAsync(existingCode, cancellationToken);
             }
 
             return await stepContext.NextAsync(cancellationToken);

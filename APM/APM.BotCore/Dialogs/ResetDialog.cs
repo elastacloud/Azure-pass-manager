@@ -24,13 +24,13 @@
                 PromptForConfirm,
                 ResumeAfterAsync
             }));
-            AddDialog(new HelpDialog());
+            AddDialog(new ChoicePrompt(nameof(ChoicePrompt)));
         }
 
         private async Task<DialogTurnResult> ResumeAfterAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
         {
             var userResponseIn = stepContext.Result;
-            if (userResponseIn is string userResponse && userResponse == "Yes")
+            if (userResponseIn is FoundChoice userResponse && userResponse.Value == "Yes")
             {                
                     var response = $"Your Azure trial code is cleared";
                     //todo: context.UserData.SetValue(AzureCodeKeyName, null);
@@ -44,6 +44,8 @@
 
                 var abandonedResponse = "Ok, you can keep using that code. ";
                 await stepContext.Context.SendActivityAsync(abandonedResponse, cancellationToken: cancellationToken);
+
+                return await stepContext.EndDialogAsync(stepContext.Options, cancellationToken);
             }
 
             return await stepContext.NextAsync(cancellationToken);
@@ -51,22 +53,23 @@
 
         private async Task<DialogTurnResult> PromptForConfirm(WaterfallStepContext stepContext, CancellationToken cancellationToken)
         {
-            return await stepContext.PromptAsync("eventName",
+            var code = (stepContext.Options) as Code; 
+            return await stepContext.PromptAsync(nameof(ChoicePrompt),
                 new PromptOptions()
                 {
                     Choices = new List<Choice>() { new Choice("Yes"), new Choice("No") },
-                    Prompt = MessageFactory.Text("Are you sure you want to clear you Azure trial code?"),
+                    Prompt = MessageFactory.Text($"Are you sure you want to clear your Azure trial code '{code.PromoCode}'?"),
                 }, 
                 cancellationToken);
         }
 
         private async Task<DialogTurnResult> DetectPreviousState(WaterfallStepContext stepContext, CancellationToken cancellationToken)
         {
-            if (!stepContext.Values.ContainsKey("azureCode"))
+            if (!(stepContext.Options is Code))
             {
                 string response = $"You don't already have an Azure trial code.";
                 await stepContext.Context.SendActivityAsync(response, cancellationToken: cancellationToken);
-                await stepContext.EndDialogAsync();
+                return await stepContext.EndDialogAsync();
             }
 
             return await stepContext.NextAsync(cancellationToken);
